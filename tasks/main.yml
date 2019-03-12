@@ -1,0 +1,133 @@
+- name: Checking if Harbor is already installed
+  stat:
+    path: "{{ harbor_install_dir }}/harbor"
+  register: harbor_folder_st
+
+- name: "Downloading Harbor {{ harbor_version }} (offline installer)"
+  get_url: url={{ harbor_url }} dest=/tmp/harbor.tgz validate_certs=no
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: "Creating Harbor directory... ({{ harbor_install_dir }}/harbor)"
+  file:
+    path: "{{ harbor_install_dir }}/harbor"
+    state: directory
+    mode: o+r
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: "Uncompressing Harbor installer..."
+  unarchive:
+    remote_src: True
+    src: /tmp/harbor.tgz
+    dest: "{{ harbor_install_dir }}"
+    creates: "{{ harbor_install_dir }}/harbor"
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Copying over harbor.cfg
+  template:
+    src: harbor.cfg.j2
+    dest: "{{ harbor_install_dir }}/harbor/harbor.cfg"
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Copying over docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ harbor_install_dir }}/harbor/docker-compose.yml"
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Copying over prepare script
+  template:
+    src: prepare.j2
+    dest: "{{ harbor_install_dir }}/harbor/prepare"
+    mode: a+x
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Creating SSL certs folder
+  file:
+    path: '{{ harbor_ssl_cert | dirname }}'
+    state: directory
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Generate self-signed cert with openssl
+  command: openssl req -newkey rsa:4096 -nodes  -sha256 -keyout '{{ harbor_ssl_cert_key }}' -subj '{{ harbor_ssl_self_subject }}' -new  -x509 -days '{{ harbor_ssl_self_days }}' -out '{{ harbor_ssl_cert }}'
+  args:
+    creates: '{{ harbor_ssl_cert }}' # don't write over a cert
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: Running Harbor installer...
+  become: yes
+  command: "./install.sh {{ harbor_installer_with }} {{ harbor_installer_extra_args }}"
+  args:
+    chdir: "{{ harbor_install_dir }}/harbor"
+    creates: '{{ harbor_install_dir }}/harbor/harbor_install_log.txt'
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+- name: "Setting permissions..."
+  file:
+    dest: "{{ harbor_install_dir }}/harbor/common"
+    mode: o+r
+    recurse: yes
+  when:
+    - not harbor_folder_st.stat.exists
+    - not harbor_folder_st.stat.isdir
+
+# - debug:
+#     msg: "{{ lookup('template', 'templates/create_project.j2') }}"
+#   when: harbor_projects is defined
+#   with_items: "{{ harbor_projects }}"
+
+- name: "Creating projects..."
+  uri:
+    url: "{{ harbor_api_url }}/projects"
+    method: POST
+    user: "admin"
+    password: "{{ harbor_admin_password | default('Harbor12345') }}"
+    status_code:
+      - 201
+      - 409 # already created
+    body_format: json
+    force_basic_auth: yes
+    return_content: yes
+    body: "{{ lookup('template', 'templates/create_project.j2') }}"
+  when: harbor_projects is defined
+  with_items: "{{ harbor_projects }}"
+
+
+# - debug:
+#     msg: "{{ lookup('template', 'templates/create_user.j2') }}"
+#   when: harbor_users is defined and harbor_self_registration == "off"
+#   with_items: "{{ harbor_users }}"
+
+
+- name: "Creating users..."
+  uri:
+    url: "{{ harbor_api_url }}/users"
+    method: POST
+    user: "admin"
+    password: "{{ harbor_admin_password | default('Harbor12345') }}"
+    status_code:
+      - 201
+      - 409 # already created
+    body_format: json
+    force_basic_auth: yes
+    return_content: yes
+    body: "{{ lookup('template', 'templates/create_user.j2') }}"
+  when: harbor_users is defined and harbor_self_registration == "off"
+  with_items: "{{ harbor_users }}"

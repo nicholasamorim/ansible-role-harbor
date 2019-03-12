@@ -1,0 +1,10 @@
+{
+  "project_name": "{{ item.project_name }}",
+  "metadata": {
+    "public": "{{ item.is_public | default ("true") }}",
+    "enable_content_trust": "{{ item.content_trust | default ("false") }}",
+    "prevent_vul": "{{ item.prevent_vul | default ("true") }}",
+    "severity": "{{ item.severity | default ("high") }}",
+    "auto_scan": "{{ item.auto_scan | default ("true") }}"
+  }
+}

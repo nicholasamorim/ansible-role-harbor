@@ -1,0 +1,37 @@
+---
+dependencies: []
+
+galaxy_info:
+  author: "Nicholas Amorim"
+  description: Installs, Configures and Manages Harbor (docker)
+  github_branch: master
+  company:
+  license: MIT
+  min_ansible_version: 2.4
+  platforms:
+    - name: EL
+      versions:
+        - 6
+        - 7
+    - name: Fedora
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - jessie
+        - stretch
+    - name: Ubuntu
+      versions:
+        - trusty
+        - xenial
+        - bionic
+  galaxy_tags:
+    - docker
+    - harbor
+    - vmware
+    - registry
+    - repository
+    - containers
+    - compose
+    - clair
+    - notary

@@ -1,0 +1,43 @@
+---
+harbor_release: 1.7.0
+harbor_version: 1.7.4
+harbor_url: "https://storage.googleapis.com/harbor-releases/release-{{ harbor_release }}/harbor-offline-installer-v{{ harbor_version }}.tgz"
+
+
+harbor_installer_extra_args:
+harbor_extras:
+  # - clair
+  # - notary
+
+# Will create harbor folder inside
+harbor_install_dir: /opt
+harbor_ui_url_protocol: "http"
+harbor_max_job_workers: 10
+harbor_port: 80
+
+# Used in the docker compose file
+harbor_exposed_http_port: 80
+harbor_exposed_https_port: 443
+harbor_install: true
+harbor_self_registration: "on"
+
+harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+harbor_datadir: "/data"
+harbor_ssl_self_days: 180
+harbor_ssl_self_subject: "/O=Harbor Server/OU=Self signed/CN=test"
+harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}harbor_exposed_https_port{% endif %}"
+harbor_api_url: "{{ harbor_ui_url_protocol }}://{{ harbor_hostname }}:{{ harbor_api_port }}/api"
+
+# Example to create project on install
+# harbor_projects:
+#   - project_name: test
+#     is_public: "false"
+#     content_trust: "false"
+#     prevent_vul: "true"
+#     severity: "high"
+#     auto_scan: "true"
+
+
+harbor_installer_with: "{% for e in harbor_extras %} {{ '--with-%s'|format(e) }} {% endfor %}"
+harbor_extra_compose_files: "[{% for e in harbor_extras %}'docker-compose.{{e}}.yml'{% endfor %}]"
+harbor_docker_compose_files: "{{ ['docker-compose.yml'] + harbor_extra_compose_files }}"
