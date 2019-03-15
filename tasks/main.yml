@@ -79,10 +79,11 @@
     - not harbor_folder_st.stat.exists
     - not harbor_folder_st.stat.isdir
 
-- name: "Setting permissions..."
+- name: "Setting permissions on Harbor common folder......"
   file:
     dest: "{{ harbor_install_dir }}/harbor/common"
-    mode: o+r
+    owner: 10000
+    group: 10000
     recurse: yes
   when:
     - not harbor_folder_st.stat.exists
