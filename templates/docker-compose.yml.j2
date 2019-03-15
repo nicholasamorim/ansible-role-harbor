@@ -203,8 +203,10 @@ services:
         tag: "jobservice"
   redis:
     image: goharbor/redis-photon:v1.7.4
-    container_name: redis
+    container_name: {{ harbor_redis_host }}
     restart: always
+    ports:
+      - {{ harbor_redis_port }}:6379
     cap_drop:
       - ALL
     cap_add:

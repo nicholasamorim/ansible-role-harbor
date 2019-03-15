@@ -84,6 +84,7 @@
     dest: "{{ harbor_install_dir }}/harbor/common"
     owner: 10000
     group: 10000
+    mode: o+x
     recurse: yes
   when:
     - not harbor_folder_st.stat.exists

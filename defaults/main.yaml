@@ -21,6 +21,10 @@ harbor_exposed_https_port: 443
 harbor_install: true
 harbor_self_registration: "on"
 
+# change these if you have your own redis running already
+harbor_redis_host: redis
+harbor_redis_port: 6379
+
 harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
 harbor_datadir: "/data"
 harbor_ssl_self_days: 180

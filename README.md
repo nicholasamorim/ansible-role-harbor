@@ -41,6 +41,14 @@ harbor_extras:
     - notary
 ```
 
+If you already have a Redis set-up, you might want to change the default redis hostname and port of Harbor:
+
+```yaml
+# change these if you have your own redis running already
+harbor_redis_host: redis
+harbor_redis_port: 6379
+```
+
 You can also pass extra arguments to the installer with `harbor_installer_extra_args` (a string).
 
 You may define `harbor_projects` if you want projects to be automatically created once harbor is installed.

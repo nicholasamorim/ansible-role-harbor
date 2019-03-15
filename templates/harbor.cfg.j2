@@ -144,10 +144,10 @@ db_user = postgres
 ##########Redis server configuration.############
 
 #Redis connection address
-redis_host = redis
+redis_host = {{ harbor_redis_host }}
 
 #Redis connection port
-redis_port = 6379
+redis_port = {{ harbor_redis_port }}
 
 #Redis connection password
 redis_password =
