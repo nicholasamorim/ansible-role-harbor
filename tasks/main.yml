@@ -10,7 +10,7 @@
 
 - name: "Creating Harbor directory... ({{ harbor_install_dir }}/harbor)"
   file:
-    path: "{{ harbor_install_dir }}/harbor"
+    path: "{{ harbor_install_dir }}"
     state: directory
     mode: o+r
   when:
