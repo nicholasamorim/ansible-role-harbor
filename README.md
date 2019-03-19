@@ -33,6 +33,8 @@ harbor_exposed_http_port: 81
 harbor_exposed_https_port: 444
 ```
 
+If you are running Harbor behind a proxy, set `harbor_behind_proxy: yes`. This will comment the necessary lines in Harbor's Nginx to make it work as per their [troubleshooting](https://github.com/vmware/harbor/blob/master/docs/installation_guide.md#troubleshooting) section.
+
 To install with extras set:
 
 ```yaml
