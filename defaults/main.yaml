@@ -15,6 +15,14 @@ harbor_ui_url_protocol: "http"
 harbor_max_job_workers: 10
 harbor_port: 80
 
+# set to yes if you are running harbor behind an Nginx proxy
+# or elastic load balancing. This will remove the line
+# proxy_set_header X-Forwarded-Proto $scheme;
+# from Harbor's nginx configuration according to the troubleshooting section.
+# https://github.com/goharbor/harbor/blob/master/docs/installation_guide.md#troubleshooting
+# REMEMBER to put this line on YOUR proxy configuration, though.
+harbor_behind_proxy: no
+
 # Used in the docker compose file
 harbor_exposed_http_port: 80
 harbor_exposed_https_port: 443
@@ -23,8 +31,8 @@ harbor_self_registration: "on"
 
 # change these if you have your own redis running already
 harbor_redis_host: redis
-harbor_redis_port: 6379
 
+# If you have Harbor running on say "myregistry.company.com", that's what you should have as harbor_hostname
 harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
 harbor_datadir: "/data"
 harbor_ssl_self_days: 180

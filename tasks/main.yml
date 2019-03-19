@@ -61,6 +61,17 @@
   when:
     - not harbor_folder_st.stat.exists or (harbor_folder_st.stat.isdir is defined and not harbor_folder_st.stat.isdir)
 
+- name: Commenting required line on Nginx configuration if harbor_behind_proxy is set
+  replace:
+    path: "{{ harbor_install_dir }}/harbor/common/templates/nginx/{{ item }}"
+    regexp: '(proxy_set_header X-Forwarded-Proto \$\$scheme;)'
+    replace: '# \1'
+    backup: yes
+  when: harbor_behind_proxy is defined and harbor_behind_proxy
+  with_items:
+    - "nginx.http.conf"
+    - "nginx.https.conf"
+
 - name: Running Harbor installer...
   become: yes
   command: "./install.sh {{ harbor_installer_with }} {{ harbor_installer_extra_args }}"

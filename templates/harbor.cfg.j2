@@ -5,7 +5,7 @@ _version = 1.7.0
 #The IP address or hostname to access admin UI and registry service.
 #DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
 #DO NOT comment out this line, modify the value of "hostname" directly, or the installation will fail.
-hostname = {{ harbor_hostname }}:{{ harbor_port }}
+hostname = {{ harbor_hostname }}
 
 #The protocol for accessing the UI and token/notification service, by default it is http.
 #It can be set to https if ssl is enabled on nginx.
@@ -147,7 +147,7 @@ db_user = postgres
 redis_host = {{ harbor_redis_host }}
 
 #Redis connection port
-redis_port = {{ harbor_redis_port }}
+redis_port = 6379
 
 #Redis connection password
 redis_password =
