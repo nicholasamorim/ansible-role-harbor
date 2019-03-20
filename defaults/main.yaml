@@ -11,6 +11,8 @@ harbor_extras:
 
 # Will create harbor folder inside
 harbor_install_dir: /opt
+# This is related to the internal Nginx. If you are running it behind a proxy that terminates
+# SSL, leave this on http. You will want to set `harbor_registry_realm_protocol` to "https", though.
 harbor_ui_url_protocol: "http"
 harbor_max_job_workers: 10
 harbor_port: 80
@@ -22,6 +24,11 @@ harbor_port: 80
 # https://github.com/goharbor/harbor/blob/master/docs/installation_guide.md#troubleshooting
 # REMEMBER to put this line on YOUR proxy configuration, though.
 harbor_behind_proxy: no
+
+# If you are running behind a proxy and the proxy terminates SSL, you need to set this to "https"
+# as this dictates the *external* access to the registry.
+# This only takes effect if "harbor_behind_proxy" is True.
+harbor_registry_realm_protocol: "http"
 
 # Used in the docker compose file
 harbor_exposed_http_port: 80
@@ -37,7 +44,8 @@ harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['addre
 harbor_datadir: "/data"
 harbor_ssl_self_days: 180
 harbor_ssl_self_subject: "/O=Harbor Server/OU=Self signed/CN=test"
-harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}{{harbor_exposed_https_port}}{% endif %}"
+harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}harbor_exposed_https_port{% endif %}"
+# If you are running Harbor behind your own proxy, override this as it might not match with Harbor.cfg values.
 harbor_api_url: "{{ harbor_ui_url_protocol }}://{{ harbor_hostname }}:{{ harbor_api_port }}/api"
 
 # Example to create project on install

@@ -1,7 +1,6 @@
 ---
-- name: restart harbor
-  docker_service:
-    project_src: "{{ harbor_install_dir }}/harbor"
-    files: "{{ harbor_docker_compose_files }}"
-    state: present
-    restarted: true
+# docker-compose and restart have trouble with syslog logging driver
+# see https://github.com/goharbor/harbor/issues/129
+# To go around that, we explicitely stop and only then start again.
+- include_tasks: stop.yaml
+- include_tasks: start.yaml

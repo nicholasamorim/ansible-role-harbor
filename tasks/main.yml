@@ -86,15 +86,45 @@
     dest: "{{ harbor_install_dir }}/harbor/common"
     owner: 10000
     group: 10000
-    mode: o+x
+    mode: 0750
+    group: docker
     recurse: yes
   when:
     - not harbor_folder_st.stat.exists or (harbor_folder_st.stat.isdir is defined and not harbor_folder_st.stat.isdir)
+
+- name: "Setting permissions on nginx folder specifically..."
+  file:
+    dest: "{{ harbor_install_dir }}/harbor/common/config/nginx"
+    owner: 10000
+    mode: o+rx
+    group: docker
+    recurse: yes
+  when:
+    - not harbor_folder_st.stat.exists or (harbor_folder_st.stat.isdir is defined and not harbor_folder_st.stat.isdir)
+
+
+- name: Changing registry realm if harbor_registry_realm_protocol is different from harbor_ui_url_protocol
+  replace:
+    path: "{{ harbor_install_dir }}/harbor/common/config/registry/config.yml"
+    regexp: 'realm: (https|http)://(.*)'
+    replace: 'realm: {{ harbor_registry_realm_protocol }}://\2'
+    backup: yes
+  when: harbor_behind_proxy is defined and harbor_behind_proxy and harbor_registry_realm_protocol != harbor_ui_url_protocol
+
+
+- debug:
+    msg: "Restarting Harbor because registry configuration changed"
+  when: harbor_behind_proxy is defined and harbor_behind_proxy and harbor_registry_realm_protocol != harbor_ui_url_protocol
+
+# Restart only if we changed the registry realm
+- include_tasks: restart.yaml
+  when: harbor_behind_proxy is defined and harbor_behind_proxy and harbor_registry_realm_protocol != harbor_ui_url_protocol
 
 # - debug:
 #     msg: "{{ lookup('template', 'templates/create_project.j2') }}"
 #   when: harbor_projects is defined
 #   with_items: "{{ harbor_projects }}"
+
 
 - name: "Creating projects..."
   uri:

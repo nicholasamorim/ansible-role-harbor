@@ -4,3 +4,4 @@
     project_src: "{{ harbor_install_dir }}/harbor"
     files: "{{ harbor_docker_compose_files }}"
     state: absent
+    timeout: 30
