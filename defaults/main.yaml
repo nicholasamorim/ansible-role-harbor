@@ -44,7 +44,7 @@ harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['addre
 harbor_datadir: "/data"
 harbor_ssl_self_days: 180
 harbor_ssl_self_subject: "/O=Harbor Server/OU=Self signed/CN=test"
-harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}harbor_exposed_https_port{% endif %}"
+harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}{{harbor_exposed_https_port}}{% endif %}"
 # If you are running Harbor behind your own proxy, override this as it might not match with Harbor.cfg values.
 harbor_api_url: "{{ harbor_ui_url_protocol }}://{{ harbor_hostname }}:{{ harbor_api_port }}/api"
 
