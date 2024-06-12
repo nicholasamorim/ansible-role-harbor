@@ -138,6 +138,8 @@ harbor_extras:
 harbor_self_registration: "off"
 # This is useful if you already have a redis container running
 harbor_redis_host: redisharbor
+harbor_ssl_cert: /etc/ssl/certs/cert.pem
+harbor_ssl_cert_key: /etc/ssl/certs/cert.key
 ```
 
 This will ensure that:
