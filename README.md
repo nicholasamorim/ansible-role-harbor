@@ -107,7 +107,7 @@ None.
         role_id: 2
         has_admin_role: true
   roles:
-    - harbor
+    - nicholasamorim.harbor
 ```
 
 After the playbook runs, you should be able to navigate to your host on port 80/443 and see Harbor's UI. You can login with `admin/Harbor12345`. If you changed the exposed ports, remember to use them instead of 80/443.
