@@ -1,0 +1,64 @@
+---
+- name: Run a real Harbor smoke test on the GitHub runner
+  hosts: local
+  gather_facts: true
+  vars:
+    runner_temp: "{{ lookup('env', 'RUNNER_TEMP') }}"
+    harbor_ci_root: "{{ runner_temp }}/harbor-integration"
+  pre_tasks:
+    - name: Remove any previous Harbor smoke test directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ harbor_ci_root }}"
+        state: absent
+
+  roles:
+    - role: ansible-role-harbor
+      vars:
+        harbor_version: 2.15.0
+        harbor_installer_type: online
+        harbor_install_dir: "{{ harbor_ci_root }}/install"
+        harbor_installer_archive: "{{ harbor_ci_root }}/downloads/harbor-online-installer-v{{ harbor_version }}.tgz"
+        harbor_datadir: "{{ harbor_ci_root }}/data"
+        harbor_hostname: "127.0.0.1"
+        harbor_ui_url_protocol: "http"
+        harbor_exposed_http_port: 18080
+        harbor_external_url: "http://127.0.0.1:18080"
+        harbor_api_url: "http://127.0.0.1:18080/api/v2.0"
+        harbor_api_validate_certs: false
+        harbor_admin_password: "IntegrationSmokePass123"
+        harbor_projects:
+          - project_name: ci-smoke
+            is_public: false
+
+  post_tasks:
+    - name: Query Harbor projects through the API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:18080/api/v2.0/projects?page=1&page_size=20"
+        method: GET
+        user: admin
+        password: "IntegrationSmokePass123"
+        force_basic_auth: true
+        status_code: 200
+      register: harbor_projects_response
+
+    - name: Assert Harbor project bootstrap succeeded
+      ansible.builtin.assert:
+        that:
+          - harbor_projects_response.status == 200
+          - harbor_projects_response.json | selectattr('name', 'equalto', 'ci-smoke') | list | length == 1
+
+    - name: Check that Harbor containers are running
+      ansible.builtin.command:
+        argv:
+          - docker
+          - ps
+          - --format
+          - "{{ '{{' }}.Names{{ '}}' }}"
+      changed_when: false
+      register: harbor_docker_ps
+
+    - name: Assert Harbor started containers
+      ansible.builtin.assert:
+        that:
+          - harbor_docker_ps.stdout_lines | length > 1

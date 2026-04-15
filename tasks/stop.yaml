@@ -1,7 +1,11 @@
 ---
-- name: stop harbor
-  docker_service:
-    project_src: "{{ harbor_install_dir }}/harbor"
-    files: "{{ harbor_docker_compose_files }}"
-    state: absent
-    timeout: 30
+- name: Detect docker compose command
+  ansible.builtin.include_tasks: _detect_compose.yml
+
+- name: Stop Harbor
+  become: "{{ harbor_become | bool }}"
+  ansible.builtin.command:
+    argv: "{{ harbor_compose_command + ['down'] }}"
+  args:
+    chdir: "{{ harbor_install_dir }}/harbor"
+  changed_when: true

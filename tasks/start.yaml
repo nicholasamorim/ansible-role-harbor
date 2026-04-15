@@ -1,6 +1,11 @@
-- name: start harbor
-  docker_service:
-    project_src: "{{ harbor_install_dir }}/harbor"
-    files: "{{ harbor_docker_compose_files }}"
-    state: present
-    timeout: 30
+---
+- name: Detect docker compose command
+  ansible.builtin.include_tasks: _detect_compose.yml
+
+- name: Start Harbor
+  become: "{{ harbor_become | bool }}"
+  ansible.builtin.command:
+    argv: "{{ harbor_compose_command + ['up', '-d'] }}"
+  args:
+    chdir: "{{ harbor_install_dir }}/harbor"
+  changed_when: true

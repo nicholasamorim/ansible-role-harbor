@@ -1,63 +1,95 @@
 ---
-harbor_release: 1.7.0
-harbor_version: 1.7.4
-harbor_url: "https://storage.googleapis.com/harbor-releases/release-{{ harbor_release }}/harbor-offline-installer-v{{ harbor_version }}.tgz"
+harbor_version: 2.15.0
+harbor_installer_type: offline
+harbor_url: "https://github.com/goharbor/harbor/releases/download/v{{ harbor_version }}/harbor-{{ harbor_installer_type }}-installer-v{{ harbor_version }}.tgz"
+harbor_installer_archive: "/tmp/harbor-{{ harbor_installer_type }}-installer-v{{ harbor_version }}.tgz"
+harbor_installer_validate_certs: true
+harbor_installer_extra_args: ""
 
+harbor_extras: []
+harbor_installer_with: "{% for extra in harbor_extras %} --with-{{ extra }}{% endfor %}"
 
-harbor_installer_extra_args:
-harbor_extras:
-  # - clair
-  # - notary
-
-# Will create harbor folder inside
+harbor_install: true
+harbor_allow_unsupported_upgrade: false
 harbor_install_dir: /opt
-# This is related to the internal Nginx. If you are running it behind a proxy that terminates
-# SSL, leave this on http. You will want to set `harbor_registry_realm_protocol` to "https", though.
+harbor_become: true
+
 harbor_ui_url_protocol: "http"
-harbor_max_job_workers: 10
 harbor_port: 80
-
-# set to yes if you are running harbor behind an Nginx proxy
-# or elastic load balancing. This will remove the line
-# proxy_set_header X-Forwarded-Proto $scheme;
-# from Harbor's nginx configuration according to the troubleshooting section.
-# https://github.com/goharbor/harbor/blob/master/docs/installation_guide.md#troubleshooting
-# REMEMBER to put this line on YOUR proxy configuration, though.
-harbor_behind_proxy: no
-
-# If you are running behind a proxy and the proxy terminates SSL, you need to set this to "https"
-# as this dictates the *external* access to the registry.
-# This only takes effect if "harbor_behind_proxy" is True.
-harbor_registry_realm_protocol: "http"
-
-# Used in the docker compose file
 harbor_exposed_http_port: 80
 harbor_exposed_https_port: 443
-harbor_install: true
-harbor_self_registration: "on"
 
-# change these if you have your own redis running already
-harbor_redis_host: redis
-
-# If you have Harbor running on say "myregistry.company.com", that's what you should have as harbor_hostname
+harbor_behind_proxy: false
+harbor_registry_realm_protocol: "http"
+harbor_external_url_port: ""
 harbor_hostname: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+harbor_external_url: >-
+  {%- if harbor_behind_proxy | bool -%}
+  {{ harbor_registry_realm_protocol }}://{{ harbor_hostname }}
+  {%- if harbor_external_url_port | string | length > 0 -%}
+  :{{ harbor_external_url_port }}
+  {%- endif -%}
+  {%- else -%}
+  {%- set protocol = harbor_ui_url_protocol -%}
+  {{ protocol }}://{{ harbor_hostname }}
+  {%- if (protocol == 'http' and harbor_exposed_http_port | int != 80)
+      or (protocol == 'https' and harbor_exposed_https_port | int != 443) -%}
+  :{{ harbor_exposed_http_port if protocol == 'http' else harbor_exposed_https_port }}
+  {%- endif -%}
+  {%- endif -%}
+harbor_api_url: "{{ harbor_external_url }}/api/v2.0"
+harbor_api_validate_certs: "{{ not (harbor_ui_url_protocol == 'https' and harbor_ssl_cert_self_sign | bool and not harbor_behind_proxy | bool) }}"
+harbor_api_wait_retries: 30
+harbor_api_wait_delay: 5
+
 harbor_datadir: "/data"
+harbor_admin_password: "Harbor12345"
+harbor_max_job_workers: 10
+
+harbor_log_level: "info"
+harbor_log_rotate_count: 50
+harbor_log_rotate_size: "200M"
+harbor_log_location: "/var/log/harbor"
+
+harbor_db_password: "root123"
+harbor_db_max_idle_conns: 100
+harbor_db_max_open_conns: 900
+harbor_db_conn_max_lifetime: "5m"
+harbor_db_conn_max_idle_time: "0m"
+
+harbor_ssl_cert: "{{ harbor_datadir }}/cert/server.crt"
+harbor_ssl_cert_key: "{{ harbor_datadir }}/cert/server.key"
+harbor_ssl_cert_self_sign: true
 harbor_ssl_self_days: 180
 harbor_ssl_self_subject: "/O=Harbor Server/OU=Self signed/CN=test"
-harbor_api_port: "{% if harbor_ui_url_protocol == 'http' %}{{harbor_exposed_http_port}}{% else %}{{harbor_exposed_https_port}}{% endif %}"
-# If you are running Harbor behind your own proxy, override this as it might not match with Harbor.cfg values.
-harbor_api_url: "{{ harbor_ui_url_protocol }}://{{ harbor_hostname }}:{{ harbor_api_port }}/api"
 
-# Example to create project on install
-# harbor_projects:
-#   - project_name: test
-#     is_public: "false"
-#     content_trust: "false"
-#     prevent_vul: "true"
-#     severity: "high"
-#     auto_scan: "true"
+harbor_trivy_ignore_unfixed: false
+harbor_trivy_skip_update: false
+harbor_trivy_skip_java_db_update: false
+harbor_trivy_offline_scan: false
+harbor_trivy_security_check: "vuln"
+harbor_trivy_insecure: false
+harbor_trivy_timeout: "5m0s"
+harbor_trivy_github_token: ""
 
+harbor_http_proxy: ""
+harbor_https_proxy: ""
+harbor_no_proxy: ""
+harbor_proxy_components:
+  - core
+  - jobservice
+  - trivy
 
-harbor_installer_with: "{% for e in harbor_extras %} {{ '--with-%s'|format(e) }} {% endfor %}"
-harbor_extra_compose_files: "{% for e in harbor_extras %} + ['docker-compose.{{e}}.yml'] {% endfor %}"
-harbor_docker_compose_files: "['docker-compose.yml'] {{ harbor_extra_compose_files }} "
+harbor_storage_service: {}
+harbor_external_database: {}
+harbor_external_redis: {}
+harbor_jobservice: {}
+harbor_notification: {}
+harbor_cache: {}
+harbor_log_external_endpoint: {}
+harbor_extra_yml_config: {}
+
+harbor_self_registration: "on"
+harbor_projects: []
+harbor_users: []
+harbor_user_default_password: "HarborUser12345"

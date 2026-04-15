@@ -1,0 +1,19 @@
+---
+- name: Verify the lifecycle Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/lifecycle"
+  tasks:
+    - name: Read the fake docker invocation log
+      ansible.builtin.slurp:
+        path: "{{ scenario_root }}/fake-docker.log"
+      register: fake_docker_log
+
+    - name: Assert the lifecycle task files invoked docker compose correctly
+      ansible.builtin.assert:
+        that:
+          - '"compose version" in (fake_docker_log.content | b64decode)'
+          - '"compose up -d" in (fake_docker_log.content | b64decode)'
+          - '"compose down" in (fake_docker_log.content | b64decode)'

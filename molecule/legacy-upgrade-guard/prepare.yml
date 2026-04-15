@@ -1,0 +1,25 @@
+---
+- name: Prepare the legacy upgrade guard Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/legacy-upgrade-guard"
+  tasks:
+    - name: Reset the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: absent
+
+    - name: Create a fake legacy Harbor installation directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}/install/harbor"
+        state: directory
+        mode: "0755"
+
+    - name: Seed a legacy harbor.cfg file
+      ansible.builtin.copy:
+        dest: "{{ scenario_root }}/install/harbor/harbor.cfg"
+        content: |
+          hostname = legacy.example.test
+        mode: "0644"

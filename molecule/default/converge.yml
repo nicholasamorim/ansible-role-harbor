@@ -1,0 +1,37 @@
+---
+- name: Converge the default Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/default"
+    fake_docker_environment:
+      PATH: "{{ scenario_root }}/bin:{{ lookup('env', 'PATH') }}"
+      FAKE_DOCKER_LOG: "{{ scenario_root }}/fake-docker.log"
+  environment: "{{ fake_docker_environment }}"
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ansible-role-harbor
+      vars:
+        harbor_install_dir: "{{ scenario_root }}/install"
+        harbor_become: false
+        harbor_datadir: "{{ scenario_root }}/data"
+        harbor_installer_archive: "{{ scenario_root }}/downloads/fake-harbor-installer.tgz"
+        harbor_url: "file://{{ scenario_root }}/fake-harbor-offline-installer.tgz"
+        harbor_hostname: "127.0.0.1"
+        harbor_ui_url_protocol: "http"
+        harbor_exposed_http_port: 18080
+        harbor_external_url: "http://127.0.0.1:18080"
+        harbor_api_url: "http://127.0.0.1:18080/api/v2.0"
+        harbor_api_validate_certs: false
+        harbor_admin_password: "SuperSecret123"
+        harbor_self_registration: "off"
+        harbor_projects:
+          - project_name: demo
+            is_public: false
+        harbor_users:
+          - username: deployer
+            email: deployer@example.com
+            realname: CI Deployer
+            has_admin_role: false

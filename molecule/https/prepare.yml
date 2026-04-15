@@ -1,0 +1,52 @@
+---
+- name: Prepare the HTTPS Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    molecule_project_directory: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/https"
+    installer_archive: "{{ scenario_root }}/fake-harbor-offline-installer.tgz"
+  tasks:
+    - name: Reset the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: absent
+
+    - name: Create the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create supporting directories for the scenario
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ scenario_root }}/bin"
+        - "{{ scenario_root }}/downloads"
+
+    - name: Install the fake docker executable
+      ansible.builtin.copy:
+        src: "{{ molecule_project_directory }}/molecule/resources/fake_docker"
+        dest: "{{ scenario_root }}/bin/docker"
+        mode: "0755"
+
+    - name: Create the fake docker log file
+      ansible.builtin.copy:
+        dest: "{{ scenario_root }}/fake-docker.log"
+        content: ""
+        mode: "0644"
+
+    - name: Build the fake Harbor installer archive
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -czf
+          - "{{ installer_archive }}"
+          - -C
+          - "{{ molecule_project_directory }}/molecule/resources/fake_harbor"
+          - harbor
+      changed_when: true

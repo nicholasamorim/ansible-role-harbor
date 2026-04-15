@@ -1,0 +1,33 @@
+---
+- name: Check for docker compose plugin
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - version
+  register: harbor_compose_v2_check
+  changed_when: false
+  failed_when: false
+
+- name: Check for docker-compose binary
+  ansible.builtin.command:
+    argv:
+      - docker-compose
+      - version
+  register: harbor_compose_v1_check
+  changed_when: false
+  failed_when: false
+  when: harbor_compose_v2_check.rc != 0
+
+- name: Fail when docker compose is unavailable
+  ansible.builtin.fail:
+    msg: >-
+      Harbor requires either `docker compose` (v2) or `docker-compose` (v1) on the
+      target host. Install one of them before using this role.
+  when:
+    - harbor_compose_v2_check.rc != 0
+    - harbor_compose_v1_check.rc | default(1) != 0
+
+- name: Set compose command
+  ansible.builtin.set_fact:
+    harbor_compose_command: "{{ ['docker', 'compose'] if harbor_compose_v2_check.rc == 0 else ['docker-compose'] }}"

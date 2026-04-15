@@ -1,0 +1,28 @@
+---
+- name: Converge the legacy upgrade guard Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/legacy-upgrade-guard"
+  tasks:
+    - name: Attempt the unsupported legacy upgrade
+      block:
+        - name: Include the role under test
+          ansible.builtin.include_role:
+            name: ansible-role-harbor
+          vars:
+            harbor_install_dir: "{{ scenario_root }}/install"
+            harbor_become: false
+      rescue:
+        - name: Record the failure details
+          ansible.builtin.set_fact:
+            harbor_upgrade_guard_failed: true
+            harbor_upgrade_guard_message: "{{ ansible_failed_result.msg | default(ansible_failed_result | to_json) }}"
+
+    - name: Assert the role blocked the unsupported upgrade
+      ansible.builtin.assert:
+        that:
+          - harbor_upgrade_guard_failed | default(false)
+          - "'harbor.cfg' in harbor_upgrade_guard_message"
+          - "'harbor_allow_unsupported_upgrade=true' in harbor_upgrade_guard_message"

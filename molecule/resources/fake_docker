@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+: "${FAKE_DOCKER_LOG:?FAKE_DOCKER_LOG must be set}"
+
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG}"
+
+if [ "$#" -ge 2 ] && [ "$1" = "compose" ] && [ "$2" = "version" ]; then
+  printf 'Docker Compose version v2.20.0\n'
+  exit 0
+fi
+
+if [ "$#" -ge 2 ] && [ "$1" = "compose" ] && [ "$2" = "up" ]; then
+  exit 0
+fi
+
+if [ "$#" -ge 2 ] && [ "$1" = "compose" ] && [ "$2" = "down" ]; then
+  exit 0
+fi
+
+printf 'unsupported docker invocation: %s\n' "$*" >&2
+exit 1

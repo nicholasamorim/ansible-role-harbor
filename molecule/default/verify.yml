@@ -1,0 +1,44 @@
+---
+- name: Verify the default Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/default"
+  tasks:
+    - name: Check that Harbor wrote an install log
+      ansible.builtin.stat:
+        path: "{{ scenario_root }}/install/harbor/harbor_install_log.txt"
+      register: harbor_install_log
+
+    - name: Check that Harbor installer marker exists
+      ansible.builtin.stat:
+        path: "{{ scenario_root }}/install/.harbor-installer-offline-2.15.0"
+      register: harbor_installer_marker
+
+    - name: Read the rendered Harbor configuration
+      ansible.builtin.slurp:
+        path: "{{ scenario_root }}/install/harbor/harbor.yml"
+      register: harbor_yml
+
+    - name: Read the mock Harbor API log
+      ansible.builtin.slurp:
+        path: "{{ scenario_root }}/mock-harbor-api.log"
+      register: harbor_api_log
+
+    - name: Decode the rendered files for assertions
+      ansible.builtin.set_fact:
+        harbor_yml_text: "{{ harbor_yml.content | b64decode }}"
+        harbor_api_log_text: "{{ harbor_api_log.content | b64decode }}"
+
+    - name: Assert the happy-path installation behavior
+      ansible.builtin.assert:
+        that:
+          - harbor_install_log.stat.exists
+          - harbor_installer_marker.stat.exists
+          - "'hostname: \"127.0.0.1\"' in harbor_yml_text"
+          - "'external_url: \"http://127.0.0.1:18080\"' in harbor_yml_text"
+          - "'port: 18080' in harbor_yml_text"
+          - "'\"method\":\"GET\",\"path\":\"/api/v2.0/projects?page=1&page_size=1\",\"status\":200' in harbor_api_log_text"
+          - "'\"method\":\"POST\",\"path\":\"/api/v2.0/projects\",\"status\":201,\"body\":{\"project_name\":\"demo\",\"public\":false}' in harbor_api_log_text"
+          - "'\"method\":\"POST\",\"path\":\"/api/v2.0/users\",\"status\":201,\"body\":{\"username\":\"deployer\"' in harbor_api_log_text"

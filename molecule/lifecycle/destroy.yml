@@ -1,0 +1,12 @@
+---
+- name: Destroy the lifecycle Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/lifecycle"
+  tasks:
+    - name: Remove the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: absent

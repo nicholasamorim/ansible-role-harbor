@@ -1,14 +1,3 @@
 ---
-- name: start harbor
-  docker_service:
-    project_src: "{{ harbor_install_dir }}/harbor"
-    files: "{{ harbor_docker_compose_files }}"
-    state: present
-    timeout: 30
-
-- name: stop harbor
-  docker_service:
-    project_src: "{{ harbor_install_dir }}/harbor"
-    files: "{{ harbor_docker_compose_files }}"
-    state: absent
-    timeout: 30
+# Harbor is applied inline in tasks/main.yml so it is ready before any API bootstrap
+# calls are made. This file is intentionally left minimal.

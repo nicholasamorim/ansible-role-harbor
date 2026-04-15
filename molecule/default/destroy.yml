@@ -1,0 +1,33 @@
+---
+- name: Destroy the default Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/default"
+    api_pid_file: "{{ scenario_root }}/mock-harbor-api.pid"
+  tasks:
+    - name: Check whether the mock Harbor API PID file exists
+      ansible.builtin.stat:
+        path: "{{ api_pid_file }}"
+      register: harbor_api_pid
+
+    - name: Read the mock Harbor API PID
+      ansible.builtin.slurp:
+        path: "{{ api_pid_file }}"
+      register: harbor_api_pid_contents
+      when: harbor_api_pid.stat.exists
+
+    - name: Stop the mock Harbor API
+      ansible.builtin.command:
+        argv:
+          - kill
+          - "{{ harbor_api_pid_contents.content | b64decode | trim }}"
+      changed_when: true
+      failed_when: false
+      when: harbor_api_pid.stat.exists
+
+    - name: Remove the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: absent

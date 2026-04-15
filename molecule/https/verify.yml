@@ -1,0 +1,38 @@
+---
+- name: Verify the HTTPS Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/https"
+  tasks:
+    - name: Check that the generated certificate exists
+      ansible.builtin.stat:
+        path: "{{ scenario_root }}/certs/server.crt"
+      register: harbor_certificate
+
+    - name: Check that the generated private key exists
+      ansible.builtin.stat:
+        path: "{{ scenario_root }}/certs/server.key"
+      register: harbor_private_key
+
+    - name: Read the rendered Harbor configuration
+      ansible.builtin.slurp:
+        path: "{{ scenario_root }}/install/harbor/harbor.yml"
+      register: harbor_yml
+
+    - name: Decode the rendered Harbor configuration
+      ansible.builtin.set_fact:
+        harbor_yml_text: "{{ harbor_yml.content | b64decode }}"
+        expected_certificate_line: 'certificate: "{{ scenario_root }}/certs/server.crt"'
+        expected_private_key_line: 'private_key: "{{ scenario_root }}/certs/server.key"'
+
+    - name: Assert the HTTPS configuration behavior
+      ansible.builtin.assert:
+        that:
+          - harbor_certificate.stat.exists
+          - harbor_private_key.stat.exists
+          - "'https:' in harbor_yml_text"
+          - "'port: 18443' in harbor_yml_text"
+          - expected_certificate_line in harbor_yml_text
+          - expected_private_key_line in harbor_yml_text

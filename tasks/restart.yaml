@@ -1,6 +1,6 @@
 ---
-# docker-compose and restart have trouble with syslog logging driver
-# see https://github.com/goharbor/harbor/issues/129
-# To go around that, we explicitely stop and only then start again.
-- include_tasks: stop.yaml
-- include_tasks: start.yaml
+- name: Stop Harbor before restart
+  ansible.builtin.include_tasks: stop.yaml
+
+- name: Start Harbor after stop
+  ansible.builtin.include_tasks: start.yaml

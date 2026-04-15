@@ -1,179 +1,172 @@
 # Ansible Role: Harbor
 
-An Ansible Role that installs [Harbor](https://github.com/goharbor/harbor) on Linux.
+Installs and manages [Harbor](https://goharbor.io/) using Harbor's supported installer flow:
 
-This role is in alpha stage. Issues and PRs are welcome.
+- download the official installer bundle
+- render `harbor.yml`
+- run `install.sh` / `prepare`
+- manage services through `docker compose` with a `docker-compose` fallback
+
+This is a modernization of the original role, which used Harbor 1.x internals directly. The role now tracks Harbor's current layout much more closely and avoids deprecated Ansible Docker modules.
 
 ## Requirements
 
-None.
+- Docker Engine installed on the target host
+- `docker compose` v2 preferred, or `docker-compose` v1 as a fallback
+- enough disk space for Harbor images and data
+
+This role does not install Docker itself.
+
+## Compatibility Notes
+
+- The defaults target Harbor `2.15.0`.
+- The role keeps old variable names such as `harbor_ui_url_protocol`, `harbor_exposed_http_port`, `harbor_exposed_https_port`, `harbor_behind_proxy`, and `harbor_registry_realm_protocol` so older playbooks keep working with minimal changes.
+- Direct in-place upgrades from very old `harbor.cfg`-based installs are blocked by default. Harbor's upstream upgrade path across major versions is multi-step, so the role fails fast unless you explicitly set `harbor_allow_unsupported_upgrade: true`.
+- Optional installer extras are still passed through via `harbor_extras`, but only extras supported by the chosen Harbor version will work. On current Harbor that usually means `trivy` and `notary`.
 
 ## Role Variables
 
-For a complete list see `defaults/main.yaml`.
+For the full list, see `defaults/main.yaml`.
 
-By default, the role uses the IP of the current host to set `harbor_hostname`. You can override it.
-
-To change the install dir:
+Common variables:
 
 ```yaml
+harbor_version: 2.15.0
 harbor_install_dir: /opt
+harbor_datadir: /data
+harbor_hostname: registry.example.com
+harbor_ui_url_protocol: http
+harbor_exposed_http_port: 80
+harbor_exposed_https_port: 443
 ```
 
-To change default protocol:
+Switch to HTTPS:
 
 ```yaml
-harbor_ui_url_protocol: "http"
+harbor_ui_url_protocol: https
+harbor_ssl_cert_self_sign: true
 ```
 
-If you want to change the exposed ports of Harbor's NGINX from the defaults of 80 and 443, use:
+If you already have certificates:
 
 ```yaml
-harbor_exposed_http_port: 81
-harbor_exposed_https_port: 444
+harbor_ui_url_protocol: https
+harbor_ssl_cert_self_sign: false
+harbor_ssl_cert: /etc/pki/harbor/fullchain.pem
+harbor_ssl_cert_key: /etc/pki/harbor/privkey.pem
 ```
 
-If you are running Harbor behind a proxy, set `harbor_behind_proxy: yes`. This will comment the necessary lines in Harbor's Nginx to make it work as per their [troubleshooting](https://github.com/vmware/harbor/blob/master/docs/installation_guide.md#troubleshooting) section.
+To run Harbor behind another proxy or load balancer:
 
-To install with extras set:
+```yaml
+harbor_hostname: registry.example.com
+harbor_behind_proxy: true
+harbor_registry_realm_protocol: https
+harbor_external_url: https://registry.example.com
+
+# Harbor itself can still listen on HTTP internally
+harbor_ui_url_protocol: http
+harbor_exposed_http_port: 8080
+```
+
+To enable installer extras:
 
 ```yaml
 harbor_extras:
-    - clair
-    - notary
+  - trivy
+  - notary
 ```
 
-If you already have a Redis set-up, you might want to change the default redis hostname and port of Harbor:
+Advanced Harbor configuration can be passed through with dictionaries that are rendered directly into `harbor.yml`:
 
 ```yaml
-# change these if you have your own redis running already
-harbor_redis_host: redis
-harbor_redis_port: 6379
+harbor_storage_service:
+  filesystem:
+    maxthreads: 100
+
+harbor_external_database:
+  harbor:
+    host: db.example.com
+    port: 5432
+    db_name: registry
+    username: harbor
+    password: supersecret
+    ssl_mode: disable
 ```
 
-You can also pass extra arguments to the installer with `harbor_installer_extra_args` (a string).
+## Bootstrap Projects And Users
 
-You may define `harbor_projects` if you want projects to be automatically created once harbor is installed.
+Projects are created through Harbor's `v2.0` API after the installation is ready:
 
 ```yaml
 harbor_projects:
-  - project_name: test
-    is_public: "false"
-    content_trust: "false"
-    prevent_vul: "true"
-    severity: "high"
-    auto_scan: "true"
+  - project_name: apps
+    is_public: false
 ```
 
-
-By default, users can self-register. If you prefer to create users automatically, you _must_ disable self-registration and set a list of users. Those users will be created automatically. The password defaults to "HarborUser12345".
-
-This operation is idempotent.
+Users can also be created automatically. Disable self-registration first:
 
 ```yaml
 harbor_self_registration: "off"
 harbor_users:
-    - username: user1
-      email: user1@test.com
-      realname: User Number 1
-      role_name: developer
-      role_id: 2
-      has_admin_role: true
+  - username: deployer
+    email: deployer@example.com
+    realname: CI Deployer
+    has_admin_role: false
 ```
 
-## Dependencies
-
-None.
+Project creation intentionally sticks to the most stable fields (`project_name` and visibility) so it works cleanly across Harbor 2.x releases.
 
 ## Example Playbook
 
 ```yaml
 ---
-- name: Installing and configuring Harbor
+- name: Install Harbor
   hosts: registry
-  vars:
-    harbor_projects:
-      - project_name: myproject
-        is_public: "false"
-        content_trust: "false"
-        prevent_vul: "true"
-        severity: "high"
-        auto_scan: "true"
-    harbor_users:
-      - username: user1
-        email: user1@test.com
-        realname: User Number 1
-        role_name: developer
-        role_id: 2
-        has_admin_role: true
   roles:
-    - nicholasamorim.harbor
+    - role: nicholasamorim.harbor
+      vars:
+        harbor_hostname: registry.example.com
+        harbor_ui_url_protocol: https
+        harbor_ssl_cert_self_sign: true
+        harbor_extras:
+          - trivy
 ```
 
-After the playbook runs, you should be able to navigate to your host on port 80/443 and see Harbor's UI. You can login with `admin/Harbor12345`. If you changed the exposed ports, remember to use them instead of 80/443.
+## Managing Harbor State
 
-### Running Harbor behind your proxy
-
-A common setup is to run Harbor behind a proxy where the proxy is responsible for SSL termination. Harbor can pretty fiddly with that as it has its own Nginx inside and things can get confusing because
-
-a) Harbor has its own Nginx proxy, that must run as `http`
-b) However, certain lines must be commented out in harbor's nginx if you use a proxy.
-c) The realm URL must also be changed to what's externally visible: `https`.
-
-Here's an example of the variables that have to bet set in such scenario:
-
-```yaml
-harbor_hostname: "myharbor.company.com"
-harbor_api_url: "https://myharbor.company.com/api"
-harbor_behind_proxy: yes
-# Internally, Harbor is still running on http
-harbor_ui_url_protocol: "http"
-harbor_customize_crt: "off"
-harbor_registry_realm_protocol: "https"
-# Running Harbor's nginx in different ports not to conflict with 80/443
-harbor_exposed_http_port: 8798
-harbor_exposed_https_port: 8799
-harbor_extras:
-  - clair
-harbor_self_registration: "off"
-# This is useful if you already have a redis container running
-harbor_redis_host: redisharbor
-harbor_ssl_cert: /etc/ssl/certs/cert.pem
-harbor_ssl_cert_key: /etc/ssl/certs/cert.key
-```
-
-This will ensure that:
-
-- Harbor's nginx gets [this line](https://github.com/goharbor/harbor/blob/master/docs/installation_guide.md#troubleshooting) commented.      
-- The registry realm url is updated correctly.
-
-This is a bit convoluted but it's a compromise to try and not change Harbor's files/templates too much as this will incur frequent breakage. I'm open to suggestions on how to improve, though.
-
-
-## Managing state 
-
-For convenience, this role includes tasks to stop, start and restart the registry using docker-compose.
-
-Here's a playbook created specifically to restart the registry:
+The role still supports `tasks_from` for service control:
 
 ```yaml
 ---
 - hosts: registry
   tasks:
-    - name: Restarting Harbor
+    - name: Restart Harbor
       include_role:
         name: harbor
         tasks_from: restart
-
-
 ```
 
-Running the playbook above effectively restarts all components of Harbor. This takes into consideration if you are using `clair` and/or `notary` and uses their docker-compose files too.
+Available task files are `start`, `stop`, and `restart`.
 
-`tasks_from` can be `restart`, `start` and `stop`.
+## Testing
 
-If you are running the playbook again to ensure the list of users but you have already changed the default admin password, you can set the `harbor_admin_password` variable somewhere or simply pass it in the command-line with `-e "harbor_admin_password=mypass"`.
+This repository now includes two GitHub Actions workflows:
 
-## Author Information
+- `CI` runs on pushes and pull requests and covers `yamllint`, `ansible-lint`, syntax-checking, and Molecule scenarios for the happy path, HTTPS self-signed configuration, the legacy upgrade guard, and the lifecycle task files.
+- `Integration` is a manual smoke test that runs the role against a real `ubuntu-latest` runner with Docker and Harbor's online installer. It is separate so normal PR validation stays fast and cheap on the free plan.
 
-This role was created in 2019 by [Nicholas Amorim](https://github.com/nicholasamorim).
+Local test entry points:
+
+```bash
+python -m pip install -r requirements-test.txt "ansible-core==2.19.*"
+yamllint .
+ansible-lint
+molecule test -s default
+```
+
+## Notes
+
+- `harbor_api_url` defaults to `{{ harbor_external_url }}/api/v2.0`.
+- When the role generates a self-signed certificate, API bootstrap calls default to `validate_certs: false`. Set `harbor_api_validate_certs: true` if your certificate chain is trusted on the target host.
+- The role intentionally avoids patching generated Harbor files after installation; changes should go through `harbor.yml` inputs instead.

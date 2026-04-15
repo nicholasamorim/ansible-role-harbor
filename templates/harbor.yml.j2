@@ -1,0 +1,89 @@
+_version: {{ harbor_version | regex_replace("-.*$", "") | to_json }}
+hostname: {{ harbor_hostname | to_json }}
+{% if harbor_external_url | string | trim | length > 0 %}
+external_url: {{ harbor_external_url | trim | to_json }}
+{% endif %}
+{% if harbor_ui_url_protocol == "https" %}
+https:
+  port: {{ harbor_exposed_https_port | int }}
+  certificate: {{ harbor_ssl_cert | to_json }}
+  private_key: {{ harbor_ssl_cert_key | to_json }}
+{% else %}
+http:
+  port: {{ harbor_exposed_http_port | int }}
+{% endif %}
+
+harbor_admin_password: {{ harbor_admin_password | to_json }}
+
+database:
+  password: {{ harbor_db_password | to_json }}
+  max_idle_conns: {{ harbor_db_max_idle_conns | int }}
+  max_open_conns: {{ harbor_db_max_open_conns | int }}
+  conn_max_lifetime: {{ harbor_db_conn_max_lifetime | to_json }}
+  conn_max_idle_time: {{ harbor_db_conn_max_idle_time | to_json }}
+
+data_volume: {{ harbor_datadir | to_json }}
+
+jobservice:
+  max_job_workers: {{ harbor_max_job_workers | int }}
+{% if harbor_jobservice | length > 0 %}
+{{ harbor_jobservice | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+
+log:
+  level: {{ harbor_log_level | to_json }}
+  local:
+    rotate_count: {{ harbor_log_rotate_count | int }}
+    rotate_size: {{ harbor_log_rotate_size | to_json }}
+    location: {{ harbor_log_location | to_json }}
+{% if harbor_log_external_endpoint | length > 0 %}
+  external_endpoint:
+{{ harbor_log_external_endpoint | to_nice_yaml(indent=2) | indent(4, true) }}
+{% endif %}
+
+{% if harbor_http_proxy | string | trim | length > 0 or harbor_https_proxy | string | trim | length > 0 or harbor_no_proxy | string | trim | length > 0 %}
+proxy:
+  http_proxy: {{ harbor_http_proxy | trim | to_json }}
+  https_proxy: {{ harbor_https_proxy | trim | to_json }}
+  no_proxy: {{ harbor_no_proxy | trim | to_json }}
+  components:
+{% for component in harbor_proxy_components %}
+    - {{ component | to_json }}
+{% endfor %}
+{% endif %}
+
+trivy:
+  ignore_unfixed: {{ harbor_trivy_ignore_unfixed | bool | ternary('true', 'false') }}
+  skip_update: {{ harbor_trivy_skip_update | bool | ternary('true', 'false') }}
+  skip_java_db_update: {{ harbor_trivy_skip_java_db_update | bool | ternary('true', 'false') }}
+  offline_scan: {{ harbor_trivy_offline_scan | bool | ternary('true', 'false') }}
+  security_check: {{ harbor_trivy_security_check | to_json }}
+  insecure: {{ harbor_trivy_insecure | bool | ternary('true', 'false') }}
+  timeout: {{ harbor_trivy_timeout | to_json }}
+{% if harbor_trivy_github_token | string | trim | length > 0 %}
+  github_token: {{ harbor_trivy_github_token | trim | to_json }}
+{% endif %}
+
+{% if harbor_storage_service | length > 0 %}
+storage_service:
+{{ harbor_storage_service | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if harbor_external_database | length > 0 %}
+external_database:
+{{ harbor_external_database | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if harbor_external_redis | length > 0 %}
+external_redis:
+{{ harbor_external_redis | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if harbor_notification | length > 0 %}
+notification:
+{{ harbor_notification | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if harbor_cache | length > 0 %}
+cache:
+{{ harbor_cache | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if harbor_extra_yml_config | length > 0 %}
+{{ harbor_extra_yml_config | to_nice_yaml(indent=2) | trim }}
+{% endif %}

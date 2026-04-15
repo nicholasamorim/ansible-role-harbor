@@ -1,11 +1,8 @@
 {
   "username": "{{ item.username }}",
   "email": "{{ item.email }}",
-  "password": "{{ item.password | default("HarborUser12345") }}",
-  "realname": "{{ item.name | default(item.username) }}",
+  "password": "{{ item.password | default(harbor_user_default_password) }}",
+  "realname": "{{ item.realname | default(item.name | default(item.username)) }}",
   "comment": "{{ item.comment | default('') }}",
-  "deleted": false,
-  "role_name": "{{ item.role_name | default("developer") }}",
-  "role_id": {{ item.role_id | default(2) }},
-  "has_admin_role": {{ item.has_admin_role | default(true) }}
+  "has_admin_role": {{ item.has_admin_role | default(false) | bool | lower }}
 }

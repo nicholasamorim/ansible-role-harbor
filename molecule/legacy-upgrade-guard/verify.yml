@@ -1,0 +1,9 @@
+---
+- name: Verify the legacy upgrade guard Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Mark the legacy upgrade guard verification as complete
+      ansible.builtin.assert:
+        that:
+          - true

@@ -1,0 +1,27 @@
+---
+- name: Converge the lifecycle Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/lifecycle"
+    fake_docker_environment:
+      PATH: "{{ scenario_root }}/bin:{{ lookup('env', 'PATH') }}"
+      FAKE_DOCKER_LOG: "{{ scenario_root }}/fake-docker.log"
+  environment: "{{ fake_docker_environment }}"
+  tasks:
+    - name: Run the role start task file
+      ansible.builtin.include_role:
+        name: ansible-role-harbor
+        tasks_from: start
+      vars:
+        harbor_install_dir: "{{ scenario_root }}/install"
+        harbor_become: false
+
+    - name: Run the role stop task file
+      ansible.builtin.include_role:
+        name: ansible-role-harbor
+        tasks_from: stop
+      vars:
+        harbor_install_dir: "{{ scenario_root }}/install"
+        harbor_become: false

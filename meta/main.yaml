@@ -2,37 +2,27 @@
 dependencies: []
 
 galaxy_info:
+  namespace: nicholasamorim
   role_name: harbor
   author: "Nicholas Amorim"
-  description: Installs, Configures and Manages Harbor (docker)
-  github_branch: master
-  company:
+  description: Installs, configures and manages Harbor with the supported installer workflow
   license: MIT
-  min_ansible_version: 2.4
+  min_ansible_version: "2.9"
   platforms:
     - name: EL
-      versions:
-        - 6
-        - 7
-    - name: Fedora
       versions:
         - all
     - name: Debian
       versions:
-        - jessie
-        - stretch
+        - all
     - name: Ubuntu
       versions:
-        - trusty
-        - xenial
-        - bionic
+        - all
   galaxy_tags:
     - docker
     - harbor
-    - vmware
     - registry
     - repository
     - containers
     - compose
-    - clair
     - notary

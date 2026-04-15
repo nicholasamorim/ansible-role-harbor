@@ -1,5 +1,9 @@
 ---
-- hosts: localhost
-  remote_user: root
+- name: Syntax-check fixture playbook
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    harbor_install: false
   roles:
     - ansible-role-harbor

@@ -1,0 +1,35 @@
+---
+- name: Prepare the lifecycle Molecule scenario
+  hosts: localhost
+  gather_facts: false
+  vars:
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    molecule_project_directory: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+    scenario_root: "{{ molecule_ephemeral_directory }}/lifecycle"
+  tasks:
+    - name: Reset the scenario root directory
+      ansible.builtin.file:
+        path: "{{ scenario_root }}"
+        state: absent
+
+    - name: Create the lifecycle scenario directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ scenario_root }}"
+        - "{{ scenario_root }}/bin"
+        - "{{ scenario_root }}/install/harbor"
+
+    - name: Install the fake docker executable
+      ansible.builtin.copy:
+        src: "{{ molecule_project_directory }}/molecule/resources/fake_docker"
+        dest: "{{ scenario_root }}/bin/docker"
+        mode: "0755"
+
+    - name: Create the fake docker log file
+      ansible.builtin.copy:
+        dest: "{{ scenario_root }}/fake-docker.log"
+        content: ""
+        mode: "0644"
